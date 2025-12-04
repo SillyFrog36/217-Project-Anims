@@ -4,6 +4,8 @@ from manim import Circle, RegularPolygon, Transform, WHITE, GREEN
 from manim import VGroup, config
 from manim import Polygon
 from manim import VMobject, Dot, MoveAlongPath
+from manim_voiceover import VoiceoverScene
+from manim_voiceover.services.gtts import GTTSService
 import numpy as np
 import math
 from decimal import Decimal, getcontext
@@ -158,7 +160,7 @@ class InscribedPolygonPiApproximation(Scene):
         self.play(FadeIn(pi_ref))
         self.wait(1)
 
-class MadhavaPiSeries(Scene):
+class MadhavaPiSeries(VoiceoverScene):
     def leibniz_partial(self, n: int) -> Decimal:
         # π/4 = Σ (-1)^k/(2k+1)
         getcontext().prec = max(60, 2 * n + 40)
@@ -223,28 +225,45 @@ class MadhavaPiSeries(Scene):
         columns.next_to(atan_series, DOWN, buff=0.5)
         columns.to_edge(LEFT, buff=0.5)
 
-        self.play(Write(leibniz_tex), Write(madhava_tex))
-        self.play(FadeIn(left_label), FadeIn(right_label))
+        self.play(Write(leibniz_tex))
+        self.play(FadeIn(left_label))
         self.wait(0.3)
 
-        # Animate partial sums under each column
+        # Animate Leibniz partial sums first
         n_values = [0, 1, 2, 3, 5, 10, 20, 50, 100]
         approxL_mobj = None
-        approxM_mobj = None
 
         for n in n_values:
             valL = self.leibniz_partial(n)
-            valM = self.madhava_partial(n)
-
             approxL = MathTex(rf"n={n}:\ \pi \approx {valL:.12f}").scale(0.75).next_to(left_col, DOWN, aligned_edge=LEFT)
-            approxM = MathTex(rf"n={n}:\ \pi \approx {valM:.12f}").scale(0.75).next_to(right_col, DOWN, aligned_edge=LEFT)
 
             if approxL_mobj is None:
-                self.play(FadeIn(approxL), FadeIn(approxM))
+                self.play(FadeIn(approxL))
             else:
-                self.play(ReplacementTransform(approxL_mobj, approxL), ReplacementTransform(approxM_mobj, approxM))
+                self.play(ReplacementTransform(approxL_mobj, approxL))
 
-            approxL_mobj, approxM_mobj = approxL, approxM
+            approxL_mobj = approxL
+            self.wait(0.3)
+
+        self.wait(0.5)
+
+        # Now show Madhava column and animate its partial sums
+        self.play(Write(madhava_tex))
+        self.play(FadeIn(right_label))
+        self.wait(0.3)
+
+        approxM_mobj = None
+
+        for n in n_values:
+            valM = self.madhava_partial(n)
+            approxM = MathTex(rf"n={n}:\ \pi \approx {valM:.12f}").scale(0.75).next_to(right_col, DOWN, aligned_edge=LEFT)
+
+            if approxM_mobj is None:
+                self.play(FadeIn(approxM))
+            else:
+                self.play(ReplacementTransform(approxM_mobj, approxM))
+
+            approxM_mobj = approxM
             self.wait(0.3)
 
         # Reference value placed below both approximation texts and centered relative to the columns
